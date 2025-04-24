@@ -2,8 +2,8 @@
     "mysql": {
       "host": "localhost",
       "user": "root",
-      "password": "J@iswal9971",
-      "database": "web3"
+      "password": "you-sql-password",
+      "database": "your-database-name"
     }
   }
   
