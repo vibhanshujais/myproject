@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-container">
+    <h2>Email Verification</h2>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <p class="message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <p>Click <a href="{% url 'login' %}">here</a> to log in if your email has been verified.</p>
+</div>
+{% endblock %}

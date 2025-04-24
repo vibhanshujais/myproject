@@ -1,0 +1,9 @@
+{
+    "mysql": {
+      "host": "localhost",
+      "user": "root",
+      "password": "J@iswal9971",
+      "database": "project"
+    }
+  }
+  
