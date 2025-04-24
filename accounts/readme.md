@@ -1,4 +1,4 @@
-1. Run IPFS daemon, local ganache, mysql server
+1. Run IPFS daemon, local ganache, mysql server, redis server
 2. uncomment network config in truffle config file (ignore if already uncommented)
 3. create config > config.json directory at root level of project
 config.json
@@ -10,6 +10,9 @@ config.json
       "database": "" // your database name
     }
 }
+
+update settings.py: smtp credentials for email
+
 
 
 4. create a table 'files' in database of choice using following command: 
