@@ -21,14 +21,64 @@
                 <p>Category: {{ doc.get_category_display }}</p>
                 <p>Uploaded: {{ doc.uploaded_at }}</p>
                 <a href="{% url 'download_document' doc.cid doc.filename %}" class="btn" style="margin-top: 0.5rem; background: #1e3c72;">Download</a>
+                <!-- <form method="POST" action="{% url 'share_document' %}" style="margin-top: 0.5rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="filename" value="{{ doc.filename }}">
+                    <input type="email" name="recipient_email" placeholder="Recipient Email" required style="width: 70%; display: inline-block;">
+                    <button type="submit" class="btn" style="width: 25%; margin: 0; display: inline-block; background: #28a745;">Share</button>
+                </form> -->
             </div>
         {% empty %}
             <p>No documents found</p>
         {% endfor %}
     </div>
+
+
+    <h2>Shared with You</h2>
+    <div class="document-list">
+        {% for shared in shared_documents %}
+            <p>
+                {{ shared.document.title }} from {{ shared.owner.username }} - 
+                <a href="{% url 'access_shared_document' shared.token %}">Access</a>
+            </p>
+        {% empty %}
+            <p>No shared documents.</p>
+        {% endfor %}
+    </div>
+    
+    <!-- Share document form -->
+    <h2>Share a Document</h2>
+    <form method="post" action="{% url 'share_document' %}" class="share-form">
+        {% csrf_token %}
+        <label for="filename">Select Document:</label>
+        <select name="filename" id="filename" required>
+            {% for doc in documents %}
+                <option value="{{ doc.filename }}">{{ doc.title }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label for="recipient_email">Recipient Email:</label>
+        <input type="email" name="recipient_email" id="recipient_email" required>
+        <br>
+        <button type="submit">Share Document</button>
+    </form>
+
+    <!-- <h3>Shared with Me</h3>
+    <div class="documents">
+        {% for shared_doc in shared_documents %}
+            <div class="doc-card">
+                <h4>{{ shared_doc.document.title }}</h4>
+                <p>File: {{ shared_doc.document.filename }}</p>
+                <p>Category: {{ shared_doc.document.get_category_display }}</p>
+                <p>Shared by: {{ shared_doc.owner.username }}</p>
+                <p>Shared at: {{ shared_doc.shared_at }}</p>
+                <a href="{% url 'download_document' shared_doc.document.cid shared_doc.document.filename %}" class="btn" style="margin-top: 0.5rem; background: #1e3c72;">Download</a>
+            </div>
+        {% empty %}
+            <p>No documents shared with you</p>
+        {% endfor %}
+    </div> -->
+
 </div>
 
-<div>
-    
-</div>
 {% endblock %}

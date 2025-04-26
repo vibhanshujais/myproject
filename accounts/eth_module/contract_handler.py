@@ -55,3 +55,19 @@ class ContractHandler:
         contract = self.web3.eth.contract(address=contract_address, abi=abi)
         cid = contract.functions.getFileHash(file_name).call()
         return cid
+    
+    def share_document(self, file_name, recipient_address, abi, contract_address):
+        contract = self.web3.eth.contract(address=contract_address, abi=abi)
+        tx_hash = contract.functions.shareDocument(file_name, recipient_address).transact({'from': self.account_address})
+        tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"Document shared with {recipient_address}. Transaction Hash = {self.web3.to_hex(tx_hash)}")
+
+    def has_access(self, file_name, user_address, abi, contract_address):
+        contract = self.web3.eth.contract(address=contract_address, abi=abi)
+        has_access = contract.functions.hasAccess(file_name, user_address).call()
+        return has_access
+
+    def get_file_owner(self, file_name, abi, contract_address):
+        contract = self.web3.eth.contract(address=contract_address, abi=abi)
+        owner = contract.functions.getFileOwner(file_name).call()
+        return owner

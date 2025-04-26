@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email</title>
+    <link rel="stylesheet" href="{% static 'auth/style.css' %}">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-image: url("https://t4.ftcdn.net/jpg/06/36/77/03/360_F_636770389_Eg1BgSKhCtnV80fcfT9QNoIwQaw3PNZO.jpg");
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .verify-container {
+            background: wheat;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+
+        .verify-container:hover {
+            transform: scale(1.05);
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .resend-link {
+            margin-top: 15px;
+            display: inline-block;
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="verify-container">
+        <h2>Email Verification</h2>
+        <p>We have sent a verification link to your email. Please check your inbox and click on the link to verify your email.</p>
+
+        <button type="button" onclick="window.location.href='{Login.html}'">Go to Login</button>
+
+        <div class="resend-link">
+            <a href="{% url 'resend_email_verification' %}">Didn't receive the email? Resend</a>
+        </div>
+    </div>
+
+</body>
+</html>
