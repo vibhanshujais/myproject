@@ -15,5 +15,7 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('upload/', views.upload_view, name='upload'),
     path('download/<str:cid>/<str:filename>', views.download_document, name='download_document'),
+    path('share/', views.share_document, name='share_document'),
+    path('access-shared/<uuid:token>/', views.access_shared_document, name='access_shared_document'),
 
 ]

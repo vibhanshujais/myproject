@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Shared with You</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Document Shared with You</h2>
+        <p>Dear {{ recipient_username }},</p>
+        <p>{{ owner_username }} has shared a document with you: <strong>{{ document_filename }}</strong>.</p>
+        <p>You can access it by clicking the button below:</p>
+        <p><a href="{{ share_link }}" class="button">Access Document</a></p>
+        <p>This link is valid for 7 days.</p>
+        <p>Best regards,<br>Your Application Team</p>
+    </div>
+</body>
+</html>

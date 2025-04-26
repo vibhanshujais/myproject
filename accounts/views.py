@@ -1,10 +1,14 @@
+from datetime import timezone, datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import CustomUser, Document
+from django.urls import reverse
+from .models import CustomUser, Document, SharedDocument
 from django.contrib import messages
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from .ipfs_module.ipfs_handler import IPFSHandler
 from .eth_module.contract_handler import ContractHandler
 from .db_module.db_handler import DBHandler
@@ -538,29 +542,43 @@ def upload_view(request):
 
 @login_required
 @no_cache_view
-def download_document(request,cid, filename):
-    cid = db_handler.retrieve_file(filename)
-    print(f"CID retrieved from mySql: {cid}")
+def download_document(request, cid, filename):
+    """Handle file download from IPFS with verification."""
+    try:
+        # Verify CID from MySQL
+        db_cid = db_handler.retrieve_file(filename)
+        logger.info(f"Retrieved CID from MySQL: {db_cid}")
 
-    cid2 = contract_handler.retrieve_file_hash(file_name=filename, abi=abi, contract_address= contract_address)
-    print(f"cid1 = {cid}\ncid2 = {cid2}")
-    
-    #match cid from smartcontract and database
-    if (cid and cid2) and (cid == cid2):
-        file_content = ipfs_handler.get_file(cid)
-        response = HttpResponse(file_content, content_type = 'application/octet-stream')
-        # safe_file_name = quote(file_name)
+        if not db_cid or db_cid != cid:
+            logger.error("CID mismatch or not found.")
+            messages.error(request, 'File not found or CID mismatch.')
+            return redirect('profile')
+
+        # Download file from IPFS
+        print("getting file")
+        file_content = ipfs_handler.get_file(db_cid)
+        if not file_content:
+            logger.error(f"Failed to retrieve file content for CID: {db_cid}")
+            messages.error(request, 'File content could not be retrieved.')
+            return redirect('profile')
+        print("got file")
+
+        # Prepare response
+        response = HttpResponse(file_content, content_type='application/octet-stream')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-    else:
-        print("file not found in mysql")
+
+    except Exception as e:
+        logger.error(f"Download failed: {str(e)}")
+        messages.error(request, f'Download failed: {str(e)}')
+        return redirect('profile')
 
 
     #document = Document.objects.filter(user=request.user, filename=filename).first()
-    print(document)
+    """ print(document)
     if not document:
         messages.error(request, 'Document not found.')
-        return redirect('profile')
+        return redirect('profile') """
 
     temp_dir = Path(settings.BASE_DIR / 'temp')
     os.makedirs(temp_dir, exist_ok=True)
@@ -654,47 +672,70 @@ def download_document(request,cid, filename):
 @login_required
 @no_cache_view
 def profile_view(request):
+    """Display user profile with documents."""
     query = request.GET.get('q', '')
     if query:
         documents = Document.objects.filter(
-            user=request.user
-        ).filter(
-            documents.filter(title__icontains=query) | documents.filter(category__icontains=query)
+            user=request.user,
+            title__icontains=query
+        ) | Document.objects.filter(
+            user=request.user,
+            category__icontains=query
         )
     else:
         documents = request.user.document_set.all()
-    return render(request, 'profile.html', {'documents': documents})
+    shared_documents = SharedDocument.objects.filter(recipient=request.user)
+    return render(request, 'profile.html', {
+        'documents': documents,
+        'shared_documents': shared_documents
+    })
 
 
 @login_required
 @no_cache_view
 def share_document(request):
+    """Handle sharing of a document with another user via email link."""
     if request.method == 'POST':
         filename = request.POST.get('filename')
         recipient_email = request.POST.get('recipient_email')
+
         try:
-            recipient = CustomUser.objects.get(email=recipient_email)
+            # Retrieve document and recipient
             document = Document.objects.get(filename=filename, user=request.user)
-            
-            # Verify ownership on blockchain
-            owner = contract.functions.getFileOwner(filename).call()
-            if owner.lower() != request.user.eth_address.lower():
-                messages.error(request, 'You are not the owner of this file.')
-                return redirect('profile')
+            recipient = CustomUser.objects.get(email=recipient_email)
 
-            # Share document via smart contract
-            tx = contract.functions.shareDocument(filename, recipient.eth_address).buildTransaction({
-                'from': request.user.eth_address,
-                'nonce': w3.eth.getTransactionCount(request.user.eth_address),
-                'gas': 100000,
-                'gasPrice': w3.toWei('20', 'gwei')
+            # Create shared document record with token
+            shared_doc = SharedDocument.objects.create(
+                document=document,
+                owner=request.user,
+                recipient=recipient
+            )
+
+            # Generate sharing link
+            share_link = request.build_absolute_uri(
+                reverse('access_shared_document', kwargs={'token': str(shared_doc.token)})
+            )
+
+            # Send email to recipient
+            subject = f"Document Shared with You: {document.filename}"
+            html_message = render_to_string('emails/share_document.html', {
+                'recipient_username': recipient.username,
+                'owner_username': request.user.username,
+                'document_filename': document.filename,
+                'share_link': share_link,
             })
-            signed_tx = w3.eth.account.signTransaction(tx, private_key=settings.USER_PRIVATE_KEY)
-            tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
-            w3.eth.waitForTransactionReceipt(tx_hash)
+            send_mail(
+                subject,
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[recipient_email],
+                html_message=html_message,
+                fail_silently=False,
+            )
 
-            messages.success(request, f'Document shared with {recipient_email}')
+            messages.success(request, f'Document shared with {recipient_email}. A link has been sent to their email.')
             return redirect('profile')
+
         except CustomUser.DoesNotExist:
             messages.error(request, 'Recipient email not found.')
             return redirect('profile')
@@ -702,6 +743,58 @@ def share_document(request):
             messages.error(request, 'Document not found.')
             return redirect('profile')
         except Exception as e:
+            logger.error(f"Error sharing document: {str(e)}")
             messages.error(request, f'Error sharing document: {str(e)}')
             return redirect('profile')
-    return render(request, 'share_document.html')
+
+    return render(request, 'profile.html')
+
+@no_cache_view
+def access_shared_document(request, token):
+    """Handle access to a shared document via a unique token."""
+    try:
+        # Retrieve shared document by token
+        shared_doc = get_object_or_404(SharedDocument, token=token)
+        document = shared_doc.document
+        print("shared")
+        # Check if the link has expired
+        if shared_doc.expires_at < datetime.now(timezone.utc):
+            messages.error(request, 'This sharing link has expired.')
+            return redirect('profile')
+        print("check for validity")
+        # Check if the user is authenticated
+        if not request.user.is_authenticated:
+            messages.error(request, 'Please log in to access the shared document.')
+            request.session['next'] = request.get_full_path()
+            return redirect('login')
+
+        # Verify user is the recipient or owner
+        if request.user != shared_doc.recipient and request.user != shared_doc.owner:
+            messages.error(request, 'You are not authorized to access this document.')
+            return redirect('profile')
+
+        # Verify CID from MySQL
+        db_cid = db_handler.retrieve_file(document.filename)
+        logger.info(f"Retrieved CID from MySQL: {db_cid}")
+
+        if not db_cid or db_cid != document.cid:
+            logger.error("CID mismatch or not found.")
+            messages.error(request, 'File not found or CID mismatch.')
+            return redirect('profile')
+
+        # Download file from IPFS
+        file_content = ipfs_handler.get_file(db_cid)
+        if not file_content:
+            logger.error(f"Failed to retrieve file content for CID: {db_cid}")
+            messages.error(request, 'File content could not be retrieved.')
+            return redirect('profile')
+
+        # Prepare response
+        response = HttpResponse(file_content, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{document.filename}"'
+        return response
+
+    except Exception as e:
+        logger.error(f"Error accessing shared document: {str(e)}")
+        messages.error(request, f'Error accessing shared document: {str(e)}')
+        return redirect('profile')

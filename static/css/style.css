@@ -56,7 +56,7 @@ main {
     padding: 2rem;
 }
 
-.auth-container, .profile-container, .upload-container {
+/* .auth-container, .profile-container, .upload-container {
     max-width: 500px;
     margin: 0 auto;
     background: white;
@@ -64,7 +64,7 @@ main {
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     animation: fadeIn 0.5s ease-in;
-}
+} */
 
 h2 {
     color: #2a5298;
